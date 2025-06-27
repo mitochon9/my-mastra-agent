@@ -15,8 +15,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json bun.lockb* ./
 
-# Install dependencies
-RUN bun install --production
+# Install all dependencies (including devDependencies for build)
+RUN bun install
 
 # Copy TypeScript config and source files
 COPY tsconfig.json ./
