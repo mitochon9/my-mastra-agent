@@ -33,6 +33,8 @@ steps:
       - '${_MAX_INSTANCES}'
       - '--set-secrets'
       - 'GOOGLE_GENERATIVE_AI_API_KEY=google-generative-ai-api-key:latest'
+      - '--service-account'
+      - 'cloud-run-sa@revedge-ai-agent.iam.gserviceaccount.com'
 
 # Substitutions with default values
 substitutions:
