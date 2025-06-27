@@ -1,8 +1,8 @@
 # Use Node.js 20 as base image
 FROM node:20-slim
 
-# Install bun
-RUN apt-get update && apt-get install -y curl && \
+# Install dependencies for bun
+RUN apt-get update && apt-get install -y curl unzip && \
     curl -fsSL https://bun.sh/install | bash && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
