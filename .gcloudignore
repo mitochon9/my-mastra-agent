@@ -1,0 +1,37 @@
+# This file specifies files that are *not* uploaded to Google Cloud
+# using gcloud. It follows the same syntax as .gitignore.
+
+.gcloudignore
+.git
+.gitignore
+
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# TypeScript source files (we only need the built files)
+src/
+
+# Environment files
+.env
+.env.*
+
+# Development files
+*.md
+.vscode/
+.idea/
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.ts
+*.spec.ts
+
+# Build artifacts that shouldn't be deployed
+*.log
+.DS_Store
+coverage/
+
+# Bun cache
+.bun/
