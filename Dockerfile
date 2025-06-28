@@ -16,7 +16,7 @@ COPY tsconfig.json bunfig.toml ./
 COPY src ./src
 
 # Build with Bun's bundler - single file output for smaller image
-RUN bun build src/server.ts \
+RUN mkdir -p dist && bun build src/server.ts \
     --target=bun \
     --outfile=dist/server.js \
     --minify \
