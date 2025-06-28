@@ -83,8 +83,16 @@ app.post('/api/weather/suggest', async (req, res) => {
 });
 
 // Start server
-app.listen(port, () => {
+const server = app.listen(port as number, () => {
   console.log(`Server is running on port ${port}`);
   console.log(`Health check: http://localhost:${port}/`);
   console.log(`Weather API: http://localhost:${port}/api/weather?city=Tokyo`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
 });
