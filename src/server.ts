@@ -11,8 +11,12 @@ const app = express();
 const port = process.env.PORT || 8080;
 
 // LINE Bot configuration
+const channelSecret = process.env.LINE_CHANNEL_SECRET || '';
+console.log('Channel Secret length:', channelSecret.length);
+console.log('Channel Secret first 4 chars:', channelSecret.substring(0, 4));
+
 const middlewareConfig: MiddlewareConfig = {
-  channelSecret: process.env.LINE_CHANNEL_SECRET || '',
+  channelSecret: channelSecret,
 };
 
 // Middleware
@@ -99,6 +103,15 @@ const server = app.listen(port as number, () => {
   console.log(`LINE_CHANNEL_ACCESS_TOKEN exists:`, !!process.env.LINE_CHANNEL_ACCESS_TOKEN);
 });
 
+// Health check for LINE webhook
+app.get('/api/line/webhook', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    secretExists: !!process.env.LINE_CHANNEL_SECRET,
+    secretLength: (process.env.LINE_CHANNEL_SECRET || '').length 
+  });
+});
+
 // LINE webhook endpoint
 app.post('/api/line/webhook', middleware(middlewareConfig), async (req, res) => {
   try {
@@ -113,6 +126,8 @@ app.post('/api/line/webhook', middleware(middlewareConfig), async (req, res) => 
     if (error instanceof Error && error.message.includes('signature validation failed')) {
       console.error('LINE_CHANNEL_SECRET may not be set correctly');
       console.error('Expected secret exists:', !!process.env.LINE_CHANNEL_SECRET);
+      console.error('Secret length:', (process.env.LINE_CHANNEL_SECRET || '').length);
+      console.error('Request headers:', req.headers);
     }
     res.status(500).json({ error: 'Internal server error' });
   }
