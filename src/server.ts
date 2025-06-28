@@ -95,16 +95,27 @@ const server = app.listen(port as number, () => {
   console.log(`Health check: http://localhost:${port}/`);
   console.log(`Weather API: http://localhost:${port}/api/weather?city=Tokyo`);
   console.log(`LINE webhook: http://localhost:${port}/api/line/webhook`);
+  console.log(`LINE_CHANNEL_SECRET exists:`, !!process.env.LINE_CHANNEL_SECRET);
+  console.log(`LINE_CHANNEL_ACCESS_TOKEN exists:`, !!process.env.LINE_CHANNEL_ACCESS_TOKEN);
 });
 
 // LINE webhook endpoint
 app.post('/api/line/webhook', middleware(middlewareConfig), async (req, res) => {
-  const events: WebhookEvent[] = req.body.events;
-  
-  // Process all events asynchronously
-  await Promise.all(events.map(handleEvent));
-  
-  res.status(200).json({ status: 'ok' });
+  try {
+    const events: WebhookEvent[] = req.body.events;
+    
+    // Process all events asynchronously
+    await Promise.all(events.map(handleEvent));
+    
+    res.status(200).json({ status: 'ok' });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    if (error instanceof Error && error.message.includes('signature validation failed')) {
+      console.error('LINE_CHANNEL_SECRET may not be set correctly');
+      console.error('Expected secret exists:', !!process.env.LINE_CHANNEL_SECRET);
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Event handler
