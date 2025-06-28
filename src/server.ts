@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import { mastra } from "./mastra/index.js";
 import dotenv from "dotenv";
-import { middleware, MiddlewareConfig, WebhookEvent, TextMessage, MessageAPIResponseBase, validateSignature } from "@line/bot-sdk";
+import { middleware, MiddlewareConfig, WebhookEvent, TextMessage, MessageAPIResponseBase } from "@line/bot-sdk";
 
 // Load environment variables
 dotenv.config();
@@ -12,8 +12,9 @@ const port = process.env.PORT || 8080;
 
 // LINE Bot configuration
 const channelSecret = process.env.LINE_CHANNEL_SECRET || '';
-console.log('Channel Secret length:', channelSecret.length);
-console.log('Channel Secret first 4 chars:', channelSecret.substring(0, 4));
+const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
+console.log('Channel Secret configured:', !!channelSecret);
+console.log('Channel Access Token configured:', !!channelAccessToken);
 
 const middlewareConfig: MiddlewareConfig = {
   channelSecret: channelSecret,
@@ -27,11 +28,8 @@ app.get("/", (req, res) => {
   res.json({ status: "ok", message: "Mastra Weather Agent API" });
 });
 
-// Apply JSON middleware for other routes (not LINE webhook)
-app.use(express.json());
-
-// Weather endpoint
-app.get("/api/weather", async (req, res) => {
+// Weather endpoint (with JSON parsing)
+app.get("/api/weather", express.json(), async (req, res) => {
   try {
     const { city } = req.query;
 
@@ -61,7 +59,7 @@ app.get("/api/weather", async (req, res) => {
 });
 
 // Weather suggestion endpoint
-app.post("/api/weather/suggest", async (req, res) => {
+app.post("/api/weather/suggest", express.json(), async (req, res) => {
   try {
     const { city, activity } = req.body;
 
@@ -113,24 +111,18 @@ app.get('/api/line/webhook', (req, res) => {
   });
 });
 
-// LINE webhook endpoint - Use middleware with proper configuration
-app.use('/api/line/webhook', middleware(middlewareConfig));
-app.post('/api/line/webhook', async (req, res) => {
+// LINE webhook endpoint with SDK middleware
+app.post('/api/line/webhook', middleware(middlewareConfig), async (req, res) => {
     try {
       const events: WebhookEvent[] = req.body.events;
-      
-      if (!events || events.length === 0) {
-        res.status(200).json({ status: 'ok' });
-        return;
-      }
       
       // Process all events asynchronously
       await Promise.all(events.map(handleEvent));
       
-      res.status(200).json({ status: 'ok' });
+      res.status(200).send('OK');
     } catch (error) {
       console.error('Webhook error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).send('Internal server error');
     }
 });
 
