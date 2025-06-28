@@ -5,10 +5,12 @@
   "private": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "mastra dev",
-    "start": "bun run build && node dist/server.js",
-    "build": "tsc",
-    "serve": "bun src/server.ts"
+    "dev": "bun --hot src/server.ts",
+    "start": "bun run dist/server.js",
+    "build": "bun build src/server.ts --target=bun --outdir=dist",
+    "build:tsc": "tsc",
+    "serve": "bun src/server.ts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",

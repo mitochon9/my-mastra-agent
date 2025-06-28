@@ -1,35 +1,44 @@
-# Use Node.js 20 as base image
-FROM node:20-slim
+# Build stage
+FROM oven/bun:1-alpine AS builder
 
-# Install dependencies for bun
-RUN apt-get update && apt-get install -y curl unzip && \
-    curl -fsSL https://bun.sh/install | bash && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Add bun to PATH
-ENV PATH="/root/.bun/bin:${PATH}"
-
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package.json bun.lock* ./
 
-# Install all dependencies (including devDependencies for build)
-RUN bun install
+# Install all dependencies
+RUN bun install --frozen-lockfile
 
-# Copy TypeScript config and source files
+# Copy source files
 COPY tsconfig.json ./
 COPY src ./src
 
-# Build the application
-RUN bun run build
+# Build with Bun's bundler (超高速!)
+RUN bun build src/server.ts --target=bun --outdir=dist
+
+# Production stage
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+# Install production dependencies only
+COPY package.json bun.lock* ./
+RUN bun install --production --frozen-lockfile
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+USER nodejs
 
 # Expose port
 EXPOSE 8080
 
-# Set environment variable for Google Cloud Run
+# Set environment variable
 ENV PORT=8080
 
-# Start the application
-CMD ["node", "dist/server.js"]
+# Start with Bun runtime
+CMD ["bun", "run", "dist/server.js"]

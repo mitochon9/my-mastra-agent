@@ -1,0 +1,18 @@
+# Bun configuration for optimal performance
+
+[install]
+# Faster package installation
+production = false
+frozen-lockfile = true
+
+[run]
+# Enable Bun's fast JSX transform
+jsx = "react"
+
+[build]
+# Minify for smaller size
+minify = true
+# Target Bun runtime for best performance
+target = "bun"
+# Dead code elimination
+treeshaking = true
