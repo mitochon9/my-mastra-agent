@@ -27,7 +27,7 @@ FROM oven/bun:1-distroless
 
 WORKDIR /app
 
-# Copy only the single bundled file
+# Copy only the bundled file
 COPY --from=builder /app/dist/server.js ./
 
 # Expose port
