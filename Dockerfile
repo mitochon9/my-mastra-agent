@@ -22,13 +22,23 @@ RUN mkdir -p dist && bun build src/server.ts \
     --minify \
     --sourcemap
 
-# Production stage - use distroless for smaller size
-FROM oven/bun:1-distroless
+# Production stage
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 
-# Copy the entire dist directory
+# Install production dependencies only
+COPY package.json bun.lock* ./
+RUN bun install --production --frozen-lockfile
+
+# Copy the built application
 COPY --from=builder /app/dist ./dist
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+USER nodejs
 
 # Expose port
 EXPOSE 8080
@@ -37,4 +47,4 @@ EXPOSE 8080
 ENV PORT=8080
 
 # Start with Bun runtime
-ENTRYPOINT ["bun", "run", "dist/server.js"]
+CMD ["bun", "run", "dist/server.js"]
