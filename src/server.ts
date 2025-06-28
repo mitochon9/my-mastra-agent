@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import { mastra } from "./mastra/index.js";
 import dotenv from "dotenv";
-import { middleware, MiddlewareConfig, WebhookEvent, TextMessage, MessageAPIResponseBase } from "@line/bot-sdk";
+import { middleware, MiddlewareConfig, WebhookEvent, TextMessage, MessageAPIResponseBase, validateSignature } from "@line/bot-sdk";
 
 // Load environment variables
 dotenv.config();
@@ -21,13 +21,16 @@ const middlewareConfig: MiddlewareConfig = {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// Note: express.json() is applied after LINE webhook route to allow signature validation
 
 
 // Health check endpoint
 app.get("/", (req, res) => {
   res.json({ status: "ok", message: "Mastra Weather Agent API" });
 });
+
+// Apply JSON middleware for other routes
+app.use(express.json());
 
 // Weather endpoint
 app.get("/api/weather", async (req, res) => {
@@ -112,22 +115,32 @@ app.get('/api/line/webhook', (req, res) => {
   });
 });
 
-// LINE webhook endpoint (temporarily bypass middleware for debugging)
-app.post('/api/line/webhook', async (req, res) => {
-  console.log('Webhook received');
-  console.log('Headers:', JSON.stringify(req.headers));
-  
-  // Manual signature validation for debugging
+// LINE webhook endpoint with proper validation
+app.post('/api/line/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const signature = req.headers['x-line-signature'] as string;
-  console.log('LINE signature:', signature);
   
-  // For now, skip validation and process the webhook
-  if (!req.body.events) {
-    console.log('No events in request body');
-    return res.status(200).json({ status: 'ok' });
+  // Validate signature
+  if (!signature) {
+    return res.status(400).send('No signature');
   }
+  
+  const body = req.body;
+  const channelSecret = process.env.LINE_CHANNEL_SECRET || '';
+  
   try {
-    const events: WebhookEvent[] = req.body.events;
+    // Validate the signature
+    if (!validateSignature(body, channelSecret, signature)) {
+      console.error('Invalid signature');
+      return res.status(400).send('Invalid signature');
+    }
+    
+    // Parse the body
+    const parsedBody = JSON.parse(body.toString());
+    
+    if (!parsedBody.events || parsedBody.events.length === 0) {
+      return res.status(200).json({ status: 'ok' });
+    }
+    const events: WebhookEvent[] = parsedBody.events;
     
     // Process all events asynchronously
     await Promise.all(events.map(handleEvent));
@@ -135,12 +148,6 @@ app.post('/api/line/webhook', async (req, res) => {
     res.status(200).json({ status: 'ok' });
   } catch (error) {
     console.error('Webhook error:', error);
-    if (error instanceof Error && error.message.includes('signature validation failed')) {
-      console.error('LINE_CHANNEL_SECRET may not be set correctly');
-      console.error('Expected secret exists:', !!process.env.LINE_CHANNEL_SECRET);
-      console.error('Secret length:', (process.env.LINE_CHANNEL_SECRET || '').length);
-      console.error('Request headers:', req.headers);
-    }
     res.status(500).json({ error: 'Internal server error' });
   }
 });
