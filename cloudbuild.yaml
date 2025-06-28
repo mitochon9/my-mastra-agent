@@ -52,8 +52,8 @@ steps:
       - "${_MIN_INSTANCES}"
       - "--max-instances"
       - "${_MAX_INSTANCES}"
-      - "--set-secrets"
-      - "GOOGLE_GENERATIVE_AI_API_KEY=google-generative-ai-api-key:latest"
+      - "--update-secrets"
+      - "GOOGLE_GENERATIVE_AI_API_KEY=google-generative-ai-api-key:latest,LINE_CHANNEL_SECRET=line-channel-secret:latest,LINE_CHANNEL_ACCESS_TOKEN=line-channel-access-token:latest,MODEL=model:latest"
       - "--service-account"
       - "cloud-run-sa@revedge-ai-agent.iam.gserviceaccount.com"
 

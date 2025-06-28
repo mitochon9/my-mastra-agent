@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun --hot src/server.ts",
+    "dev": "concurrently -n \"api,playground\" -c \"blue,green\" \"bun --hot src/server.ts\" \"mastra dev\"",
+    "dev:api": "bun --hot src/server.ts",
+    "dev:playground": "mastra dev",
     "start": "bun run dist/server.js",
     "build": "bun build src/server.ts --target=bun --outdir=dist",
     "build:tsc": "tsc",
@@ -19,6 +21,7 @@
   "type": "module",
   "dependencies": {
     "@ai-sdk/google": "^1.2.19",
+    "@line/bot-sdk": "^10.0.0",
     "@mastra/core": "latest",
     "@mastra/loggers": "latest",
     "@types/cors": "^2.8.19",
@@ -30,6 +33,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.29",
+    "concurrently": "^9.2.0",
     "mastra": "latest",
     "typescript": "^5.8.3"
   }
