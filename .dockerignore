@@ -1,26 +1,66 @@
+# Dependencies
 node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-bun.lockb
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Environment files
+.env*
+!.env.example
+
+# Version control
 .git
 .gitignore
-README.md
-DEPLOY.md
-.env.local
-.env.development
-.env.test
-.env.production.local
-.DS_Store
-*.swp
-*.swo
+.gitattributes
+
+# IDE
 .vscode
 .idea
-dist
+*.swp
+*.swo
+.DS_Store
+
+# Documentation
+README.md
+DEPLOY.md
+docs
+*.md
+
+# CI/CD
+.github
+cloudbuild*.yaml
+Dockerfile*
+.dockerignore
+
+# Testing
 coverage
 .nyc_output
-cloudbuild.yaml
-Dockerfile
-.dockerignore
+*.test.*
+__tests__
+
+# Misc
+.cache
+.parcel-cache
+.turbo
+tmp
+temp
+*.tmp
+
+# Project specific
 claude-docs
 description.txt
+bunfig.toml
+.mastra

@@ -6,65 +6,61 @@ on:
   pull_request:
     branches: [ main ]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [20.x]
+      fail-fast: true
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup Bun
       uses: oven-sh/setup-bun@v2
       with:
         bun-version: latest
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-
-    - name: Cache dependencies
+    - name: Cache Bun modules
       uses: actions/cache@v4
+      id: bun-cache
       with:
-        path: ~/.bun/install/cache
+        path: |
+          ~/.bun/install/cache
+          node_modules
         key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
         restore-keys: |
           ${{ runner.os }}-bun-
 
     - name: Install dependencies
-      run: bun install
+      if: steps.bun-cache.outputs.cache-hit != 'true'
+      run: bun install --frozen-lockfile
 
-    - name: Build
-      run: bun run build
-
-    - name: Run tests
-      run: bun test
-      continue-on-error: true
-
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v2
-      with:
-        bun-version: latest
-
-    - name: Install dependencies
-      run: bun install
-
-    - name: Type check
-      run: bun run tsc --noEmit
+    - name: Run all checks in parallel
+      run: |
+        bun run build &
+        BUILD_PID=$!
+        
+        bun run tsc --noEmit &
+        TSC_PID=$!
+        
+        bun test &
+        TEST_PID=$!
+        
+        wait $BUILD_PID || (echo "Build failed" && exit 1)
+        wait $TSC_PID || (echo "Type check failed" && exit 1)
+        wait $TEST_PID || (echo "Tests failed" && exit 1)
 
   docker:
     runs-on: ubuntu-latest
-    needs: [build, lint]
+    needs: [build-and-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
@@ -81,3 +77,4 @@ jobs:
         tags: weather-agent:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
