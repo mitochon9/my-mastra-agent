@@ -27,8 +27,8 @@ FROM oven/bun:1-distroless
 
 WORKDIR /app
 
-# Copy only the bundled file
-COPY --from=builder /app/dist/server.js ./
+# Copy the entire dist directory
+COPY --from=builder /app/dist ./dist
 
 # Expose port
 EXPOSE 8080
@@ -37,4 +37,4 @@ EXPOSE 8080
 ENV PORT=8080
 
 # Start with Bun runtime
-ENTRYPOINT ["bun", "run", "server.js"]
+ENTRYPOINT ["bun", "run", "dist/server.js"]
