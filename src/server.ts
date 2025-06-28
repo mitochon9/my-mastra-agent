@@ -21,15 +21,13 @@ const middlewareConfig: MiddlewareConfig = {
 
 // Middleware
 app.use(cors());
-// Note: express.json() is applied after LINE webhook route to allow signature validation
-
 
 // Health check endpoint
 app.get("/", (req, res) => {
   res.json({ status: "ok", message: "Mastra Weather Agent API" });
 });
 
-// Apply JSON middleware for other routes
+// Apply JSON middleware for other routes (not LINE webhook)
 app.use(express.json());
 
 // Weather endpoint
@@ -115,42 +113,34 @@ app.get('/api/line/webhook', (req, res) => {
   });
 });
 
-// LINE webhook endpoint with proper validation
-app.post('/api/line/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const signature = req.headers['x-line-signature'] as string;
-  
-  // Validate signature
-  if (!signature) {
-    return res.status(400).send('No signature');
-  }
-  
-  const body = req.body;
-  const channelSecret = process.env.LINE_CHANNEL_SECRET || '';
-  
-  try {
-    // Validate the signature
-    if (!validateSignature(body, channelSecret, signature)) {
-      console.error('Invalid signature');
-      return res.status(400).send('Invalid signature');
+// LINE webhook endpoint - Use middleware correctly
+app.post('/api/line/webhook', 
+  express.raw({ type: 'application/json' }), 
+  (req, res, next) => {
+    // Convert raw body to string for middleware
+    req.body = req.body.toString();
+    next();
+  },
+  middleware(middlewareConfig), 
+  async (req, res) => {
+    try {
+      const events: WebhookEvent[] = req.body.events;
+      
+      if (!events || events.length === 0) {
+        res.status(200).json({ status: 'ok' });
+        return;
+      }
+      
+      // Process all events asynchronously
+      await Promise.all(events.map(handleEvent));
+      
+      res.status(200).json({ status: 'ok' });
+    } catch (error) {
+      console.error('Webhook error:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-    
-    // Parse the body
-    const parsedBody = JSON.parse(body.toString());
-    
-    if (!parsedBody.events || parsedBody.events.length === 0) {
-      return res.status(200).json({ status: 'ok' });
-    }
-    const events: WebhookEvent[] = parsedBody.events;
-    
-    // Process all events asynchronously
-    await Promise.all(events.map(handleEvent));
-    
-    res.status(200).json({ status: 'ok' });
-  } catch (error) {
-    console.error('Webhook error:', error);
-    res.status(500).json({ error: 'Internal server error' });
   }
-});
+);
 
 // Event handler
 async function handleEvent(event: WebhookEvent): Promise<MessageAPIResponseBase | undefined> {
