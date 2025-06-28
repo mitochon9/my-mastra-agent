@@ -1,6 +1,6 @@
 import { google } from '@ai-sdk/google';
 import { Agent } from '@mastra/core/agent';
-import { weatherTool } from '../tools';
+import { weatherTool } from '../tools/index.js';
 
 export const weatherAgent = new Agent({
   name: 'Weather Agent',
