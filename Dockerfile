@@ -3,36 +3,32 @@ FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better layer caching
 COPY package.json bun.lock* ./
 
-# Install all dependencies
+# Install all dependencies (cached unless package files change)
 RUN bun install --frozen-lockfile
 
-# Copy source files
-COPY tsconfig.json ./
+# Copy config files next (less frequently changed)
+COPY tsconfig.json bunfig.toml ./
+
+# Copy source files last (most frequently changed)
 COPY src ./src
 
-# Build with Bun's bundler (超高速!)
-RUN bun build src/server.ts --target=bun --outdir=dist
+# Build with Bun's bundler - single file output for smaller image
+RUN bun build src/server.ts \
+    --target=bun \
+    --outfile=dist/server.js \
+    --minify \
+    --sourcemap
 
-# Production stage
-FROM oven/bun:1-alpine
+# Production stage - use distroless for smaller size
+FROM oven/bun:1-distroless
 
 WORKDIR /app
 
-# Install production dependencies only
-COPY package.json bun.lock* ./
-RUN bun install --production --frozen-lockfile
-
-# Copy built application
-COPY --from=builder /app/dist ./dist
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-USER nodejs
+# Copy only the single bundled file
+COPY --from=builder /app/dist/server.js ./
 
 # Expose port
 EXPOSE 8080
@@ -41,4 +37,4 @@ EXPOSE 8080
 ENV PORT=8080
 
 # Start with Bun runtime
-CMD ["bun", "run", "dist/server.js"]
+ENTRYPOINT ["bun", "run", "server.js"]

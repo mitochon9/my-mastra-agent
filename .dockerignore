@@ -62,5 +62,8 @@ temp
 # Project specific
 claude-docs
 description.txt
-bunfig.toml
 .mastra
+
+# Bun specific (keep bunfig.toml for build optimization)
+.bun
+bun.lockb.log
