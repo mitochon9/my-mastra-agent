@@ -113,16 +113,9 @@ app.get('/api/line/webhook', (req, res) => {
   });
 });
 
-// LINE webhook endpoint - Use middleware correctly
-app.post('/api/line/webhook', 
-  express.raw({ type: 'application/json' }), 
-  (req, res, next) => {
-    // Convert raw body to string for middleware
-    req.body = req.body.toString();
-    next();
-  },
-  middleware(middlewareConfig), 
-  async (req, res) => {
+// LINE webhook endpoint - Use middleware with proper configuration
+app.use('/api/line/webhook', middleware(middlewareConfig));
+app.post('/api/line/webhook', async (req, res) => {
     try {
       const events: WebhookEvent[] = req.body.events;
       
@@ -139,8 +132,7 @@ app.post('/api/line/webhook',
       console.error('Webhook error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
-  }
-);
+});
 
 // Event handler
 async function handleEvent(event: WebhookEvent): Promise<MessageAPIResponseBase | undefined> {
